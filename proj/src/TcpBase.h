@@ -9,9 +9,9 @@ public:
 	boost::asio::ip::tcp::socket sock;
 
 	TcpBase();
-	~TcpBase();
+	virtual ~TcpBase();
 
-	void sendMessage( const std::string& msg ) const;
-	std::string receiveMessage();
+	virtual void sendMessage( const std::string& msg ) const;
+	virtual std::string receiveMessage();
 };
 

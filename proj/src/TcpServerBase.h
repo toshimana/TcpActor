@@ -1,17 +1,13 @@
 #pragma once
 
-#include <memory>
+#include "TcpBase.h"
 
-class TcpServerBase
+class TcpServerBase : public TcpBase
 {
 public:
 	TcpServerBase( unsigned short port );
 	~TcpServerBase();
 
-	void receiveMessage( void ) const;
-
-private:
-	struct Impl;
-	std::unique_ptr<Impl> mImpl;
+	boost::asio::ip::tcp::acceptor acceptor;
 };
 

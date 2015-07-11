@@ -1,19 +1,11 @@
 #pragma once
 
-#include <string>
-#include <memory>
-#include <functional>
+#include "TcpBase.h"
 
-class TcpClientBase
+class TcpClientBase : public TcpBase
 {
 public:
 	TcpClientBase( const std::string& address, unsigned short port );
 	~TcpClientBase();
-
-	void sendMessage( const std::string& msg, std::function<void(std::string)> rcv ) const;
-
-private:
-	struct Impl;
-	std::unique_ptr<Impl> mImpl;
 };
 
