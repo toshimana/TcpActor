@@ -1,0 +1,23 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
+
+PROJECT( TcpActor )
+
+# Boost
+FIND_PATH( BOOST_ROOT boost/signals2/signal.hpp
+  /usr/local/include )
+FIND_PACKAGE( Boost REQUIRED COMPONENTS system )
+IF ( Boost_FOUND )
+  INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+  LINK_DIRECTORIES( ${Boost_LIBRARY_DIR} )
+ENDIF()
+
+# Actor
+FIND_PATH( ACTOR_INCLUDE_DIRS REQUIRED actor.hpp
+  /usr/local/include )
+INCLUDE_DIRECTORIES( ${ACTOR_INCLUDE_DIRS} )
+
+# Target
+FILE( GLOB SRCS "*.cpp" )
+
+ADD_EXECUTABLE( TcpActor ${SRCS} )
+TARGET_LINK_LIBRARIES( TcpActor ${Boost_LIBRARIES} )
