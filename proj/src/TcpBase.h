@@ -11,7 +11,7 @@ public:
 	TcpBase();
 	virtual ~TcpBase();
 
-	virtual void sendMessage( const std::string& msg ) const;
+	virtual void sendMessage( const std::string& msg );
 	virtual std::string receiveMessage();
 };
 

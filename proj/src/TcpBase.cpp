@@ -16,14 +16,16 @@ TcpBase::~TcpBase()
 }
 
 void
-TcpBase::sendMessage( const std::string& msg ) const
+TcpBase::sendMessage( const std::string& msg )
 {
-//	asio::write( sock, asio::buffer( msg ) );
+	std::cout << __FUNCTION__ << std::endl;
+	asio::write( sock, asio::buffer( msg ) );
 }
 
 std::string
 TcpBase::receiveMessage()
 {
+	std::cout << __FUNCTION__ << std::endl;
 	asio::streambuf receive_buffer;
 	boost::system::error_code error;
 	asio::read( this->sock, receive_buffer, asio::transfer_all(), error );
