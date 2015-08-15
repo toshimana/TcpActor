@@ -56,14 +56,6 @@ struct TcpServerActor::Impl
 
 		void on_receive( const TcpServerActorMessage::Receive& )
 		{
-			base->entry( TcpServerActorMessage::Receive() );
-
-			std::cout << __FUNCTION__ << std::endl;
-			std::string msg = base->mImpl->server->receiveMessage();
-			std::cout << __FUNCTION__ << std::endl;
-			if ( msg.empty() ) return;
-
-			base->mImpl->receiveMessage( msg );
 		}
 
 		// Transition

@@ -8,6 +8,12 @@ public:
 	TcpServerBase( unsigned short port );
 	~TcpServerBase();
 
-	boost::asio::ip::tcp::acceptor acceptor;
+	virtual void on_accept( const boost::system::error_code& error );
+	virtual void on_receive( const boost::system::error_code& error, size_t bytes_transffered );
+
+private:
+	struct Impl;
+	std::unique_ptr<Impl> mImpl;
+	boost::asio::streambuf receive_buffer;
 };
 
