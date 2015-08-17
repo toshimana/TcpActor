@@ -11,9 +11,7 @@ public:
 	TcpBase();
 	virtual ~TcpBase();
 
-	virtual void sendMessage( const std::string& msg );
-	virtual std::string receiveMessage();
-
-protected:
-	virtual void on_accept( const boost::system::error_code& error ) = 0;
+private:
+	struct Impl;
+	std::unique_ptr<Impl> mImpl;
 };

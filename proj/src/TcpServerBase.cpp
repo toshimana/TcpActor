@@ -12,26 +12,18 @@ namespace ip       = asio::ip;
 struct TcpServerBase::Impl
 {
 	TcpServerBase*const base;
-	std::unique_ptr<asio::io_service::work> work;
 	asio::ip::tcp::acceptor acceptor;
-	boost::thread th;
+	boost::asio::streambuf receive_buffer;
+
 	Impl( TcpServerBase*const obj, unsigned short port )
 		: base( obj )
-		, work( new asio::io_service::work( *(base->io_service) ) )
 		, acceptor( *( base->io_service ), ip::tcp::endpoint(ip::tcp::v4(), port) )
-		, th( [this](){ base->io_service->run(); } )
 	{
-		acceptor.async_accept( base->sock,
-			boost::bind( &TcpServerBase::on_accept, base, asio::placeholders::error ) );
+		// shared_from_thisはコンストラクタでは使用してはいけない
 	}
 
 	~Impl()
 	{
-		// workの破棄
-		work.reset();
-
-		// threadの終了
-		th.join();
 	}
 };
 
@@ -45,6 +37,14 @@ TcpServerBase::~TcpServerBase()
 {
 }
 
+void
+TcpServerBase::accept( void )
+{
+	std::shared_ptr<TcpServerBase> p = shared_from_this();
+	mImpl->acceptor.async_accept( sock,
+		[p](const boost::system::error_code& error){ p->on_accept(error); } );
+}
+
 void 
 TcpServerBase::on_accept( const boost::system::error_code& error )
 {
@@ -55,10 +55,11 @@ TcpServerBase::on_accept( const boost::system::error_code& error )
 
 	std::cout << __FUNCTION__ << " : connection success." << std::endl;
 
-	asio::async_read( this->sock, 
-		receive_buffer,
+	std::shared_ptr<TcpServerBase> p = shared_from_this();
+	asio::async_read( sock, 
+		mImpl->receive_buffer,
 		asio::transfer_all(),
-		boost::bind( &TcpServerBase::on_receive, this, asio::placeholders::error, asio::placeholders::bytes_transferred ) );
+		[p](const boost::system::error_code& error, size_t bytes_transffered){ p->on_receive(error, bytes_transffered); } );
 }
 
 
@@ -70,7 +71,7 @@ TcpServerBase::on_receive( const boost::system::error_code& error, size_t bytes_
 		return;
 	}
 
-	const char* m = asio::buffer_cast<const char*>(receive_buffer.data());
+	const char* m = asio::buffer_cast<const char*>(mImpl->receive_buffer.data());
 	std::string msg( m );
 	std::cout << __FUNCTION__ << " : " << msg << std::endl;
 }

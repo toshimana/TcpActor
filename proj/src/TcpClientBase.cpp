@@ -7,11 +7,31 @@
 namespace asio     = boost::asio;
 namespace ip       = asio::ip;
 
+namespace
+{
+	struct Message
+	{
+		std::string msg;
+
+		Message( const std::string& _msg )
+			: msg( _msg )
+		{}
+
+		void
+		on_send( const boost::system::error_code& error, size_t bytes_transffered ) const
+		{
+			if ( error ) {
+				std::cerr << __FUNCTION__ << " : " << error.message() << std::endl;
+				return;
+			}
+			std::cout << "[OUT]" << "send success." << std::endl;
+		}
+	};
+};
+
 TcpClientBase::TcpClientBase( const std::string& address, unsigned short port )
 {
-	sock.async_connect( ip::tcp::endpoint( ip::address::from_string( address ), port ), 
-		boost::bind( &TcpClientBase::on_accept, this, asio::placeholders::error ) );
-	io_service->run();
+	sock.connect( ip::tcp::endpoint( ip::address::from_string(address), port) );
 }
 
 
@@ -22,32 +42,12 @@ TcpClientBase::~TcpClientBase()
 void
 TcpClientBase::sendMessage( const std::string& msg )
 {
-	io_service->reset();
+	// Messageオブジェクトは送信処理が終了した時点で解放される
+	std::shared_ptr<Message> p = std::make_shared<Message>( msg );
 	asio::async_write( sock, 
-		asio::buffer( msg ),
-		boost::bind( &TcpClientBase::on_send, this, asio::placeholders::error, asio::placeholders::bytes_transferred )
+		asio::buffer( p->msg ),
+		[p]( const boost::system::error_code& error, size_t bytes_transffered ){ 
+		p->on_send( error, bytes_transffered ); }
 		);
-	io_service->run();
-}
-
-void 
-TcpClientBase::on_accept( const boost::system::error_code& error )
-{
-	if ( error ) {
-		std::cerr << __FUNCTION__ << " : " << error.message() << std::endl;
-		return;
-	}
-
-	std::cout << __FUNCTION__ << " : connection success." << std::endl;
-}
-
-void 
-TcpClientBase::on_send( const boost::system::error_code& error, size_t bytes_transffered ) const
-{
-	if ( error ) {
-		std::cerr << __FUNCTION__ << " : " << error.message() << std::endl;
-		return;
-	}
-	std::cout << "[OUT]" << "send success." << std::endl;
 }
 
