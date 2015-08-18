@@ -5,15 +5,18 @@
 #include <boost/bind/bind.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/thread.hpp>
+#include <boost/signals2/signal.hpp>
 
-namespace asio     = boost::asio;
-namespace ip       = asio::ip;
+namespace asio = boost::asio;
+namespace ip   = asio::ip;
+namespace sig  = boost::signals2;
 
 struct TcpServerBase::Impl
 {
 	TcpServerBase*const base;
 	asio::ip::tcp::acceptor acceptor;
 	boost::asio::streambuf receive_buffer;
+	sig::signal<void( std::string )> receiveMessage;
 
 	Impl( TcpServerBase*const obj, unsigned short port )
 		: base( obj )
@@ -45,6 +48,12 @@ TcpServerBase::accept( void )
 		[p](const boost::system::error_code& error){ p->on_accept(error); } );
 }
 
+void
+TcpServerBase::connectReceiveMessage( std::function<void( std::string )> func )
+{
+	mImpl->receiveMessage.connect( func );
+}
+
 void 
 TcpServerBase::on_accept( const boost::system::error_code& error )
 {
@@ -56,9 +65,12 @@ TcpServerBase::on_accept( const boost::system::error_code& error )
 	std::cout << __FUNCTION__ << " : connection success." << std::endl;
 
 	std::shared_ptr<TcpServerBase> p = shared_from_this();
+	// async_readの第3引数はtransfer_allにすると、
+	// いつまでも受信待ちになる。
+	// transfer_at_leastで最低受信サイズを設定した方が良い？
 	asio::async_read( sock, 
 		mImpl->receive_buffer,
-		asio::transfer_all(),
+		asio::transfer_at_least(1),
 		[p](const boost::system::error_code& error, size_t bytes_transffered){ p->on_receive(error, bytes_transffered); } );
 }
 
@@ -71,7 +83,7 @@ TcpServerBase::on_receive( const boost::system::error_code& error, size_t bytes_
 		return;
 	}
 
-	const char* m = asio::buffer_cast<const char*>(mImpl->receive_buffer.data());
-	std::string msg( m );
+	const char* msg = asio::buffer_cast<const char*>(mImpl->receive_buffer.data());
 	std::cout << __FUNCTION__ << " : " << msg << std::endl;
+	mImpl->receiveMessage( msg );
 }
