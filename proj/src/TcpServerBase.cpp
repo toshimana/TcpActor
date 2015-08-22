@@ -11,8 +11,56 @@ namespace asio = boost::asio;
 namespace ip   = asio::ip;
 namespace sig  = boost::signals2;
 
+namespace
+{
+	size_t getDataSize( const char* buf )
+	{
+		unsigned long size;
+		memcpy( &size, buf + 4, 4 );
+		return 8 + ntohl( size );
+	}
+
+	TcpBase::Message getMessage( const char* buf )
+	{
+		// header
+		char type[4];
+		unsigned long _size;
+		memcpy( type,   buf,     4 );
+		memcpy( &_size, buf + 4, 4 );
+		size_t size = ntohl( _size );
+
+		// data
+		if ( memcmp( type, "txt", 4 ) == 0 ) {
+			std::string txt( size, '\0' );
+			memcpy( const_cast<char*>(txt.data()), buf + 8, size );
+			return TcpBase::Text( txt );
+		}
+		else {
+			std::cerr << __FUNCTION__ << " : unknown message" << std::endl;
+			assert( false );
+		}
+		return TcpBase::Error();
+	}
+};
+
 struct TcpServerBase::Impl
 {
+	struct ProcMessage : boost::static_visitor<void>
+	{
+		ProcMessage( TcpServerBase*const obj ) : base( obj ){}
+
+		void operator()( const TcpBase::Error& value )
+		{
+			// do nothing.
+		}
+
+		void operator()( const TcpBase::Text& value )
+		{
+			base->mImpl->receiveMessage( value.msg );
+		}
+		TcpServerBase* const base;
+	};
+
 	TcpServerBase*const base;
 	asio::ip::tcp::acceptor acceptor;
 	boost::asio::streambuf receive_buffer;
@@ -27,6 +75,7 @@ struct TcpServerBase::Impl
 
 	~Impl()
 	{
+		acceptor.close();
 	}
 };
 
@@ -63,17 +112,8 @@ TcpServerBase::on_accept( const boost::system::error_code& error )
 	}
 
 	std::cout << __FUNCTION__ << " : connection success." << std::endl;
-
-	std::shared_ptr<TcpServerBase> p = shared_from_this();
-	// async_readの第3引数はtransfer_allにすると、
-	// いつまでも受信待ちになる。
-	// transfer_at_leastで最低受信サイズを設定した方が良い？
-	asio::async_read( sock, 
-		mImpl->receive_buffer,
-		asio::transfer_at_least(1),
-		[p](const boost::system::error_code& error, size_t bytes_transffered){ p->on_receive(error, bytes_transffered); } );
+	receive();
 }
-
 
 void
 TcpServerBase::on_receive( const boost::system::error_code& error, size_t bytes_transffered )
@@ -83,7 +123,33 @@ TcpServerBase::on_receive( const boost::system::error_code& error, size_t bytes_
 		return;
 	}
 
-	const char* msg = asio::buffer_cast<const char*>(mImpl->receive_buffer.data());
-	std::cout << __FUNCTION__ << " : " << msg << std::endl;
-	mImpl->receiveMessage( msg );
+	// 受信量がヘッダサイズに満たなければ、次の受信を待つ
+	while ( 8 < mImpl->receive_buffer.size() ) {
+		std::cout << "Byte : " << mImpl->receive_buffer.size() << std::endl;
+		const char* data = asio::buffer_cast<const char*>(mImpl->receive_buffer.data());
+		size_t dataSize = getDataSize( data );
+
+		// 受信量がデータサイズに満たなければ、次の受信を待つ
+		if ( mImpl->receive_buffer.size() < dataSize ) break;
+
+		// メッセージを解析する
+		TcpBase::Message msg = getMessage( data );
+		mImpl->receive_buffer.consume( dataSize );
+		TcpServerBase::Impl::ProcMessage pm( this );
+		apply_visitor( pm, msg );
+	}
+	receive();
+}
+
+void
+TcpServerBase::receive()
+{
+	std::shared_ptr<TcpServerBase> p = shared_from_this();
+	// async_readの第3引数はtransfer_allにすると、
+	// いつまでも受信待ちになる。
+	// transfer_at_leastで最低受信サイズを設定した方が良い？
+	asio::async_read( sock, 
+		mImpl->receive_buffer,
+		asio::transfer_at_least(1),
+		[p](const boost::system::error_code& error, size_t bytes_transffered){ p->on_receive(error, bytes_transffered); } );
 }

@@ -8,6 +8,6 @@ public:
 	TcpClientBase( const std::string& address, unsigned short port );
 	virtual ~TcpClientBase();
 
-	virtual void sendMessage( const std::string& msg );
+	virtual void sendMessage( const Message& msg );
 };
 

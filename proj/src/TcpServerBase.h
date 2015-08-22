@@ -18,5 +18,6 @@ private:
 
 	void on_accept( const boost::system::error_code& error );
 	void on_receive( const boost::system::error_code& error, size_t bytes_transffered );
+	void receive( void );
 };
 

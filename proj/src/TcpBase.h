@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <boost/variant.hpp>
 
 class TcpBase
 {
@@ -10,6 +11,21 @@ public:
 
 	TcpBase();
 	virtual ~TcpBase();
+
+	struct Error
+	{
+		Error( int _errorno = -1 ) : errorno( _errorno ) {}
+		const int errorno;
+	};
+
+	struct Text
+	{
+		Text( const std::string& _msg )	: msg( _msg ){}
+		const std::string msg;
+	};
+
+	typedef boost::variant<Error,Text> Message;
+
 
 private:
 	struct Impl;
