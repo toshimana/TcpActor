@@ -89,6 +89,12 @@ TcpServerBase::~TcpServerBase()
 {
 }
 
+std::shared_ptr<TcpServerBase>
+TcpServerBase::create( unsigned short port )
+{
+	return std::shared_ptr<TcpServerBase>( new TcpServerBase( port ) );
+}
+
 void
 TcpServerBase::accept( void )
 {

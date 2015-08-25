@@ -19,9 +19,18 @@ INCLUDE_DIRECTORIES( ${ACTOR_INCLUDE_DIRS} )
 # Target
 FILE( GLOB SRCS "*.cpp" )
 LIST( REMOVE_ITEM SRCS "main.cpp" )
+LIST( REMOVE_ITEM SRCS "serverMain.cpp" )
+LIST( REMOVE_ITEM SRCS "clientMain.cpp" )
 
 ADD_LIBRARY( TcpBaseLib STATIC ${SRCS} )
 TARGET_LINK_LIBRARIES( TcpBaseLib ${Boost_LIBRARIES} )
 
 ADD_EXECUTABLE( TcpActor "main.cpp" )
 TARGET_LINK_LIBRARIES( TcpActor TcpBaseLib )
+
+ADD_EXECUTABLE( TcpServerMain "serverMain.cpp" )
+TARGET_LINK_LIBRARIES( TcpServerMain TcpBaseLib )
+
+ADD_EXECUTABLE( TcpClientMain "clientMain.cpp" )
+TARGET_LINK_LIBRARIES( TcpClientMain TcpBaseLib )
+

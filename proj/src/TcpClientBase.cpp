@@ -70,6 +70,12 @@ TcpClientBase::~TcpClientBase()
 {
 }
 
+std::shared_ptr<TcpClientBase>
+TcpClientBase::create( const std::string& address, unsigned short port )
+{
+	return std::shared_ptr<TcpClientBase>( new TcpClientBase( address, port ) );
+}
+
 void
 TcpClientBase::sendMessage( const Message& msg )
 {
