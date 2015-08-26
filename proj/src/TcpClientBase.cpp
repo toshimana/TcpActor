@@ -11,56 +11,53 @@ namespace ip       = asio::ip;
 
 namespace
 {
-	struct Msg2Binary : boost::static_visitor<std::string>
+	struct Msg2Binary : boost::static_visitor<void>
 	{
-		std::string operator()( const TcpBase::Error& value )
+		std::vector<unsigned char> buf;
+
+		void operator()( const TcpBase::Error& value )
 		{
 			// ここに来たら作りが悪い
 			assert( false );
-			return "";
 		}
 
-		std::string operator()( const TcpBase::Text& value )
+		void operator()( const TcpBase::Text& value )
 		{
 			size_t bufSize = 4 + 4 + value.msg.size();
-			std::string buf( bufSize, '\0' );
+			buf.resize( bufSize, '\0' );
 			unsigned long dataSize = htonl( value.msg.size() );
 
 			// header ( Type + Size )
-			memcpy( const_cast<char*>(buf.data()    ), "txt",     3 );
-			memcpy( const_cast<char*>(buf.data() + 4), &dataSize, 4 );
+			memcpy( buf.data(), "txt",     3 );
+			memcpy( buf.data() + 4, &dataSize, 4 );
 
 			// data
-			memcpy( const_cast<char*>(buf.data() + 8), value.msg.data(), value.msg.size() );
-
-			return buf;
+			memcpy( buf.data() + 8, value.msg.data(), value.msg.size() );
 		}
 
-		std::string operator()( const TcpBase::Image& value )
+		void operator()( const TcpBase::Image& value )
 		{
 			std::vector<uchar> imgBuf;
 			cv::imencode( ".png", value.img, imgBuf );
 
 			size_t bufSize = 4 + 4 + imgBuf.size();
-			std::string buf( bufSize, '\0' );
+			buf.resize( bufSize, '\0' );
 			unsigned long dataSize = htonl( imgBuf.size() );
 
 			// header
-			memcpy( const_cast<char*>(buf.data()    ), "img",     3 );
-			memcpy( const_cast<char*>(buf.data() + 4), &dataSize, 4 );
+			memcpy( buf.data()    , "img",     3 );
+			memcpy( buf.data() + 4, &dataSize, 4 );
 
 			// data
-			memcpy( const_cast<char*>(buf.data() + 8), imgBuf.data(), imgBuf.size() );
-
-			return buf;
+			memcpy( buf.data() + 8, imgBuf.data(), imgBuf.size() );
 		}
 	};
 
 	struct SMessage
 	{
-		std::string msg;
+		std::vector<unsigned char> msg;
 
-		SMessage( const std::string& _msg )
+		SMessage( const std::vector<unsigned char>& _msg )
 			: msg( _msg )
 		{}
 
@@ -100,10 +97,10 @@ void
 TcpClientBase::sendMessage( const Message& msg )
 {
 	Msg2Binary m2b;
-	std::string msgBinary = apply_visitor( m2b, msg );
+	apply_visitor( m2b, msg );
 
 	// SMessageオブジェクトは送信処理が終了した時点で解放される
-	std::shared_ptr<SMessage> p = std::make_shared<SMessage>( msgBinary );
+	std::shared_ptr<SMessage> p = std::make_shared<SMessage>( m2b.buf );
 	asio::async_write( sock, 
 		asio::buffer( p->msg ),
 		[p]( const boost::system::error_code& error, size_t bytes_transffered ){ 
