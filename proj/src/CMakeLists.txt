@@ -11,6 +11,12 @@ IF ( Boost_FOUND )
   LINK_DIRECTORIES( ${Boost_LIBRARY_DIR} )
 ENDIF()
 
+# OpenCV
+FIND_PACKAGE( OpenCV REQUIRED )
+IF ( OpenCV_FOUND )
+  INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
+ENDIF()
+
 # Actor
 FIND_PATH( ACTOR_INCLUDE_DIRS REQUIRED actor.hpp
   /usr/local/include )
@@ -24,6 +30,7 @@ LIST( REMOVE_ITEM SRCS "clientMain.cpp" )
 
 ADD_LIBRARY( TcpBaseLib STATIC ${SRCS} )
 TARGET_LINK_LIBRARIES( TcpBaseLib ${Boost_LIBRARIES} )
+TARGET_LINK_LIBRARIES( TcpBaseLib ${OpenCV_LIBS} )
 
 ADD_EXECUTABLE( TcpActor "main.cpp" )
 TARGET_LINK_LIBRARIES( TcpActor TcpBaseLib )

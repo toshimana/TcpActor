@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <boost/bind/bind.hpp>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 
 namespace asio     = boost::asio;
 namespace ip       = asio::ip;
@@ -31,6 +32,25 @@ namespace
 
 			// data
 			memcpy( const_cast<char*>(buf.data() + 8), value.msg.data(), value.msg.size() );
+
+			return buf;
+		}
+
+		std::string operator()( const TcpBase::Image& value )
+		{
+			std::vector<uchar> imgBuf;
+			cv::imencode( ".png", value.img, imgBuf );
+
+			size_t bufSize = 4 + 4 + imgBuf.size();
+			std::string buf( bufSize, '\0' );
+			unsigned long dataSize = htonl( imgBuf.size() );
+
+			// header
+			memcpy( const_cast<char*>(buf.data()    ), "img",     3 );
+			memcpy( const_cast<char*>(buf.data() + 4), &dataSize, 4 );
+
+			// data
+			memcpy( const_cast<char*>(buf.data() + 8), imgBuf.data(), imgBuf.size() );
 
 			return buf;
 		}

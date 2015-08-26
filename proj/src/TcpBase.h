@@ -3,6 +3,8 @@
 #include <boost/asio.hpp>
 #include <boost/variant.hpp>
 
+#include <opencv2/core/core.hpp>
+
 class TcpBase
 {
 public:
@@ -24,7 +26,13 @@ public:
 		const std::string msg;
 	};
 
-	typedef boost::variant<Error,Text> Message;
+	struct Image
+	{
+		Image( const cv::Mat& _img ) : img( _img ){}
+		const cv::Mat img;
+	};
+
+	typedef boost::variant<Error,Text,Image> Message;
 
 
 private:

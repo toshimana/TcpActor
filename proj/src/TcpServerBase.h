@@ -9,7 +9,8 @@ public:
 	~TcpServerBase();
 
 	void accept();
-	void connectReceiveMessage( std::function<void( std::string )> func );
+	void connectReceiveText( std::function<void( std::string )> func );
+	void connectReceiveImage( std::function<void( cv::Mat ) > func );
 
 	static std::shared_ptr<TcpServerBase> create( unsigned short port );
 

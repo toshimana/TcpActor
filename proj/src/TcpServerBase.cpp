@@ -7,6 +7,8 @@
 #include <boost/thread.hpp>
 #include <boost/signals2/signal.hpp>
 
+#include <opencv2/imgcodecs/imgcodecs.hpp>
+
 namespace asio = boost::asio;
 namespace ip   = asio::ip;
 namespace sig  = boost::signals2;
@@ -35,7 +37,12 @@ namespace
 			memcpy( const_cast<char*>(txt.data()), buf + 8, size );
 			return TcpBase::Text( txt );
 		}
-		else {
+		else if ( memcmp( type, "img", 4 ) == 0 ) {
+			std::vector<uchar> imgBuf( size );
+			memcpy( const_cast<uchar*>(imgBuf.data()), buf + 8, size );
+			return TcpBase::Image( cv::imdecode( imgBuf, cv::IMREAD_COLOR) );
+		} 
+		else{
 			std::cerr << __FUNCTION__ << " : unknown message" << std::endl;
 			assert( false );
 		}
@@ -56,7 +63,12 @@ struct TcpServerBase::Impl
 
 		void operator()( const TcpBase::Text& value )
 		{
-			base->mImpl->receiveMessage( value.msg );
+			base->mImpl->receiveText( value.msg );
+		}
+
+		void operator()( const TcpBase::Image& value )
+		{
+			base->mImpl->receiveImage( value.img );
 		}
 		TcpServerBase* const base;
 	};
@@ -64,7 +76,8 @@ struct TcpServerBase::Impl
 	TcpServerBase*const base;
 	asio::ip::tcp::acceptor acceptor;
 	boost::asio::streambuf receive_buffer;
-	sig::signal<void( std::string )> receiveMessage;
+	sig::signal<void( std::string )> receiveText;
+	sig::signal<void( cv::Mat )> receiveImage;
 
 	Impl( TcpServerBase*const obj, unsigned short port )
 		: base( obj )
@@ -104,9 +117,15 @@ TcpServerBase::accept( void )
 }
 
 void
-TcpServerBase::connectReceiveMessage( std::function<void( std::string )> func )
+TcpServerBase::connectReceiveText( std::function<void( std::string )> func )
 {
-	mImpl->receiveMessage.connect( func );
+	mImpl->receiveText.connect( func );
+}
+
+void
+TcpServerBase::connectReceiveImage( std::function<void( cv::Mat )> func )
+{
+	mImpl->receiveImage.connect( func );
 }
 
 void 
