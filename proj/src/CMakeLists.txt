@@ -2,10 +2,15 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 
 PROJECT( TcpActor )
 
+# GCC
+IF( CMAKE_COMPILER_IS_GNUCXX )
+  ADD_DEFINITIONS( "-std=c++11" )
+ENDIF()
+
 # Boost
 FIND_PATH( BOOST_ROOT boost/signals2/signal.hpp
   /usr/local/include )
-FIND_PACKAGE( Boost REQUIRED COMPONENTS system )
+FIND_PACKAGE( Boost REQUIRED COMPONENTS system thread )
 IF ( Boost_FOUND )
   INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
   LINK_DIRECTORIES( ${Boost_LIBRARY_DIR} )
@@ -24,16 +29,12 @@ INCLUDE_DIRECTORIES( ${ACTOR_INCLUDE_DIRS} )
 
 # Target
 FILE( GLOB SRCS "*.cpp" )
-LIST( REMOVE_ITEM SRCS "main.cpp" )
 LIST( REMOVE_ITEM SRCS "serverMain.cpp" )
 LIST( REMOVE_ITEM SRCS "clientMain.cpp" )
 
 ADD_LIBRARY( TcpBaseLib STATIC ${SRCS} )
 TARGET_LINK_LIBRARIES( TcpBaseLib ${Boost_LIBRARIES} )
 TARGET_LINK_LIBRARIES( TcpBaseLib ${OpenCV_LIBS} )
-
-ADD_EXECUTABLE( TcpActor "main.cpp" )
-TARGET_LINK_LIBRARIES( TcpActor TcpBaseLib )
 
 ADD_EXECUTABLE( TcpServerMain "serverMain.cpp" )
 TARGET_LINK_LIBRARIES( TcpServerMain TcpBaseLib )
